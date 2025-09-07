@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jumping Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: skyblue;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(skyblue, lightgreen);
+      overflow: hidden;
+    }
+
+    #player {
+      position: absolute;
+      left: 50px;
+      bottom: 200px;
+      width: 40px;
+      height: 40px;
+      background: red;
+      border-radius: 50%;
+    }
+
+    .obstacle {
+      position: absolute;
+      right: -60px;
+      width: 60px;
+      background: green;
+    }
+
+    #score {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 24px;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="player"></div>
+    <div id="score">Score: 0</div>
+  </div>
+
+  <!-- Background Music -->
+  <audio id="bg-music" loop>
+    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Jump Sound -->
+  <audio id="jump-sound">
+    <source src="https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg" type="audio/ogg">
+  </audio>
+
+  <script>
+    const game = document.getElementById("game");
+    const player = document.getElementById("player");
+    const scoreDisplay = document.getElementById("score");
+    const bgMusic = document.getElementById("bg-music");
+    const jumpSound = document.getElementById("jump-sound");
+
+    let gravity = 2;
+    let velocity = 0;
+    let score = 0;
+    let gameOver = false;
+    let musicStarted = false;
+
+    // Jump function
+    function jump() {
+      if (!gameOver) {
+        velocity = -22; // jump power
+        jumpSound.currentTime = 0;
+        jumpSound.play();
+
+        // Start music on first action
+        if (!musicStarted) {
+          bgMusic.volume = 0.4;
+          bgMusic.play();
+          musicStarted = true;
+        }
+      }
+    }
+
+    // Controls: Click / Touch / Spacebar
+    document.body.addEventListener("click", jump);
+    document.body.addEventListener("touchstart", jump);
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") jump();
+    });
+
+    // Game loop
+    setInterval(() => {
+      if (gameOver) return;
+
+      velocity += gravity;
+      let newBottom = parseInt(player.style.bottom || 200) - velocity;
+
+      if (newBottom <= 0) {
+        player.style.bottom = "0px";
+        endGame();
+        return;
+      }
+
+      player.style.bottom = newBottom + "px";
+    }, 30);
+
+    // Spawn Obstacles
+    function createObstacle() {
+      if (gameOver) return;
+
+      const obstacleTop = document.createElement("div");
+      const obstacleBottom = document.createElement("div");
+      const gap = 150;
+      const height = Math.random() * (window.innerHeight - gap - 100) + 50;
+
+      obstacleTop.classList.add("obstacle");
+      obstacleBottom.classList.add("obstacle");
+
+      obstacleTop.style.height = height + "px";
+      obstacleTop.style.top = "0px";
+
+      obstacleBottom.style.height = window.innerHeight - height - gap + "px";
+      obstacleBottom.style.bottom = "0px";
+
+      game.appendChild(obstacleTop);
+      game.appendChild(obstacleBottom);
+
+      let x = window.innerWidth;
+
+      const move = setInterval(() => {
+        if (gameOver) {
+          clearInterval(move);
+          return;
+        }
+
+        x -= 5;
+        obstacleTop.style.right = window.innerWidth - x + "px";
+        obstacleBottom.style.right = window.innerWidth - x + "px";
+
+        // Collision check
+        if (x < 90 && x > 10) {
+          const playerBottom = parseInt(player.style.bottom);
+          if (playerBottom < window.innerHeight - parseInt(obstacleBottom.style.height) ||
+              playerBottom + 40 > parseInt(obstacleTop.style.height)) {
+            endGame();
+          }
+        }
+
+        // Remove offscreen
+        if (x < -60) {
+          clearInterval(move);
+          obstacleTop.remove();
+          obstacleBottom.remove();
+          score++;
+          scoreDisplay.innerText = "Score: " + score;
+        }
+      }, 20);
+    }
+
+    setInterval(createObstacle, 2000);
+
+    function endGame() {
+      if (gameOver) return;
+      gameOver = true;
+      bgMusic.pause();
+      alert("Game Over! Your Score: " + score);
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>
